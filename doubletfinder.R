@@ -1,4 +1,4 @@
-#https://cloud.tencent.com/developer/article/1825672
+
 library(Seurat)
 library(patchwork)
 library(tidyverse)
@@ -6,8 +6,8 @@ devtools::install_github('chris-mcginnis-ucsf/DoubletFinder')
 library(DoubletFinder)
 library(KernSmooth)
 library(ROCR)
-setwd("E:/SHMC_1805/Lab data/Sunlab/bioinformatics/rawdata")
-data <- get(load("E:/SHMC_1805/Lab data/Sunlab/bioinformatics/rawdata/scRNA_harmony_UMAP.Rdata"))
+setwd("E:/Lab data/Sunlab/bioinformatics/rawdata")
+data <- get(load("E:/Lab data/Sunlab/bioinformatics/rawdata/scRNA_harmony_UMAP.Rdata"))
 dataL <- list()
 dataL <- SplitObject(data, split.by = "orig.ident") 
 #选择其中一个样本开始分析，节约运存
