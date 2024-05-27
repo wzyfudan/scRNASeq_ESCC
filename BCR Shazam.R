@@ -1,7 +1,4 @@
-#https://changeo.readthedocs.io/en/stable/examples/10x.html
-#https://shazam.readthedocs.io/en/stable/topics/observedMutations/
-#https://www.jianshu.com/p/adc20a8bfad1
-#https://www.jianshu.com/p/d32deb676319
+
 rm(list=ls())
 setwd("E:/Lab data/Sunlab/bioinformatics/rawdata")
 #BiocManager::install("GenomicAlignments")
@@ -170,56 +167,3 @@ ggplot(merge, aes(x = group, y = prop, color = group)) +
                vjust = 2.3,
                size = 6)
 ggsave("Patient clonetype SHM.PDF",width = 6,height = 6)
-
-
-#绘制igphyml的germline谱系树，需要利用changeO最终结果-------------------------------
-library(alakazam)  #构建谱系树
-library(igraph)
-db = readIgphyml("SHM/p1/ex_igphyml-pass.tab")
-plot(db$trees[[1]],layout=layout_as_tree)
-#线程图
-library(ape)
-db = readIgphyml("SHM/P1/ex_igphyml-pass.tab",format="phylo")
-plot(ladderize(db$trees[[1]]),cex=0.7,no.margin=TRUE)  #选择tree当中关注的clone_id
-# Show HLP10 parameters
-print(t(db$param[1,]))
-
-
-#或者使用BuildPhylipLineage建树Clonal lineage reconstruction，结果是一样的！
-#https://alakazam.readthedocs.io/en/stable/topics/buildPhylipLineage/
-#同一germline，某个cloneid出发-each clone with at least two unique sequences
-A <- table(db[[7]][,c("clone_id")]) %>% as.data.frame() 
-sub_db <- subset(db[[7]], clone_id == 296)
-clone <- makeChangeoClone(
-  sub_db,
-  id = "sequence_id",
-  seq = "sequence_alignment",
-  germ = "germline_alignment_d_mask",
-  v_call = "v_call",
-  j_call = "j_call",
-  junc_len = "junction_length",
-  clone = "clone_id",
-  mask_char = "N",
-  max_mask = 0,
-  pad_end = TRUE,
-  text_fields = c("sequence_id", "c_call"),
-  num_fields = NULL,
-  seq_fields = NULL,
-  add_count = TRUE,
-  verbose = FALSE
-)
-#使用外源性的phylip,Infer an Ig lineage using PHYLIP
-phylip_exec <- "E:/Lab data/Sunlab/bioinformatics/bin/phylip-3.698/exe/dnapars.exe"
-graph <- buildPhylipLineage(clone, phylip_exec, dist_mat = getDNAMatrix(gap = -1),
-                            rm_temp = TRUE,
-                            verbose = FALSE,
-                            temp_path = NULL,
-                            onetree = FALSE,
-                            branch_length = c("mutations"))
-# Plot graph,系统发生树，越往下体细胞超频突变越强
-plot(graph, layout=layout_as_tree, edge.arrow.mode=0.5, vertex.frame.color="black",
-     vertex.label.color="black", vertex.size=30,vertex.label=NULL) #Null,"1","2","3","4","5","6","7","8","9"
-# Add legend
-legend("topleft", c("Germline", "Inferred", "Sample"), 
-       fill=c("black", "white", "steelblue"), cex=0.75)
-
