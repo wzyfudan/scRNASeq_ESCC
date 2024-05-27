@@ -35,11 +35,12 @@ ids1$group = 'NR'
 ids2$group = 'R'
 df = rbind(ids1,ids2)
 
-df1 = rbind(ids1,ids2) #换个细胞合并再来一次
-df <- rbind(df,df1)
-#去除值为0的行
+df1 = rbind(ids1,ids2) #换个interest细胞亚群重复上述比例计算
+df <- rbind(df,df1) #如合并CD8T和B细胞的Freq
 df$Freq[df$Freq == 0]<-NA
 df = na.omit(df)
+
+#计算prop
 ESOtest1 <- readRDS("scRNA_harmony_UMAP.Rds")
 meta1 = ESOtest1@meta.data
 ids = table(meta1$orig.ident) %>% as.data.frame()
@@ -50,7 +51,7 @@ for(i in 1:dim(ids)[1]){
 #制作矩阵
 library(tidyr)
 library(dplyr)
-#报错重启
+
 prop_matrix <- df %>%
   # 将表格按照Patient_ID和Cell_Type分组，然后对Prop取平均值
   group_by(new.cluster.ids,orig.ident) %>%
@@ -64,7 +65,6 @@ prop_matrix[is.na(prop_matrix)] <- 0
 prop_matrix <- as.matrix(prop_matrix)
 
 spearman_corr <- cor(prop_matrix, method = "spearman")
-
 subset_corr <- spearman_corr[10:20,c("TNFRSF13B Bmem","FCRL4 Bmem"), drop = FALSE]
 #可视化
 library(ggplot2)
@@ -80,48 +80,3 @@ pheatmap::pheatmap(subset_corr,
                    cluster_rows = FALSE,          # 禁用行聚类
                    cluster_cols = FALSE )         # 禁用列聚类 
 pdf("CD8-DC Rho.PDF", width = 6,height = 4)        
-
-
-
-
-#pearson相关性图
-scRNA_epi <- ESOtest1[,ESOtest1@meta.data$seurat_clusters %in% c(10)]
-scRNA_epi <- AddModuleScore(object = scRNA_epi, features = "S100A7", name = "cell")
-data = scRNA_epi@meta.data[,c("orig.ident","cell1","group")] %>% as.data.frame()
-data <- aggregate(data$cell1, by=list(data$orig.ident),mean)
-colnames(data)[1] <- "orig.ident"
-
-#或者结合bulk-seq结果
-data <- data.frame(orig.ident = c("P1","P2","P5","P6","P7","P8","P9","P10"),value = as.numeric(c("66.19577617",	"2.101928394",	"2.959163305",	"1.03356623",'308.8712722',"159.3664925","2528.581834","1198.500916")))
-data <- data.frame(orig.ident = c("P1","P2","P5","P6","P7","P8","P9","P10"),value = as.numeric(c("3.597020147","0","0","0.034532703","2.72861569",	"0.076982575","40.01423987","19.28345611")))
-
-data <- read.csv("E:/lab data/Sunlab/data/20230510-mRNA-WZY/5.Expression/All.tpm.exp_anno.csv",row.names = 1)
-{TLS <- c("CCL2", "CCL3", "CCL4", "CCL5", "CCL8", "CCL18", "CCL19", "CCL21", "CXCL9","CXCL10", "CXCL11", "CXCL13") #在scRNA打分需要加上list
-sub_data <- data[data$GeneSymbol %in% TLS,]
-sub_data <- sub_data[,1:8] %>% data.frame() #手动计算上述基因集平均值
-data <- data.frame(orig.ident = c("P1","P2","P5","P6","P7","P8","P9","P10"),value = as.numeric(c("35.15950717",	"35.87923833","5.225784692","311.2459892","38.95326333","29.80269368","27.674503","41.5071495")))}
-
-data <- mean_data #根据addmodulescore得到，因为肿瘤细胞无关TLS形成
-colnames(data)[2] <-"value"
-#data <- data.frame(orig.ident = c("P1","P2","P3","P4","P5","P6","P7","P8","P9","P10"),value = as.numeric(c("0.32",	"-0.07","0.44","0.34","0.38","0.52","-0.04","1.28","0.27","0.37"))) #FORL2 Mean
-
-
-sub_df <- df[df$new.cluster.ids %in% c("RTKN2 Treg","ISG15 Treg","LAIR2 Treg","TNFRSF4 Treg","TNFRSF9 Treg"),]  #结合某细胞的比例
-result <- sub_df %>% #计算多个cluster的总占比
-  group_by(orig.ident) %>%
-  mutate(all = sum(prop))
-
-#合并计算相关性
-result <- merge(result,data,by = "orig.ident")
-sub_df$value[sub_df$value == 0]<-NA
-sub_df = na.omit(sub_df)
-correlation <- cor.test(result$all,result$value, method = "pearson")
-ggplot(data = result, aes(x = value, y = all)) +
-  geom_point()
-p <- ggplot(data = result, aes(x = all, y = value)) +
-  geom_point() +
-  labs(title = paste("Pearson Correlation =", round(correlation$estimate, 2), " (P =", format(correlation$p.value, digits = 2), ")"),
-       x = "IGHG PC & IGHA PC",
-       y = "12-chemokines for Tertiary lymphoid structure(TLS) Mean TPM") 
-p +geom_smooth(method = "lm", se = TRUE, color = "red") 
-ggsave("TLS & IGHG PC.PDF",width = 6,height = 5)
