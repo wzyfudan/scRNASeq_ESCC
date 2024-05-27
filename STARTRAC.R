@@ -1,4 +1,4 @@
-#https://github.com/jianye0383/STARTRAC
+
 rm(list=ls())
 library(dplyr)
 library(Seurat)
@@ -9,7 +9,7 @@ setwd("E:/Lab data/Sunlab/bioinformatics/rawdata")
 #devtools::install_github("Japrin/sscVis")
 #devtools::install_github("Japrin/STARTRAC")
 #BiocManager::install("impute")
-#devtools::install_local("E:/Lab data/Sunlab/bioinformatics/bin/STARTRAC") #本地安装！code页面download，zip
+#devtools::install_local("E:/Lab data/Sunlab/bioinformatics/bin/STARTRAC")
 library("Startrac")
 library("tictoc")
 library("ggpubr")
@@ -19,8 +19,8 @@ library("RColorBrewer")
 library("circlize")
 
 #数据读取The input to Startrac which the columns "cell_name",'clone.id', 'patient', 'majorCluster' and 'loc' are required.
-in.dat <- read.table("article-PDF/cloneDat_ESO2023_CD8.txt",stringsAsFactors = F,head=T)
-in.dat <- read.table("article-PDF/cloneDat_ESO2023_B.txt",stringsAsFactors = F,head=T)
+in.dat <- read.table("cloneDat_ESO2023_CD8.txt",stringsAsFactors = F,head=T)
+#in.dat <- read.table("cloneDat_ESO2023_B.txt",stringsAsFactors = F,head=T)
 #运行STARTRAC管道：
 tic("Startrac.run")
 out <- Startrac.run(in.dat[in.dat$group %in% c("R"),], proj="ESOtest", cores=NULL,verbose=F)
@@ -37,8 +37,6 @@ df <- df %>%
 # t检验
 #批量计算p值
 library(rstatix)
-#df$majorCluster <- factor(df$majorCluster, c("CXCL13 Tex", "IL7R Tm", "TNFSF9 Tcm",  "GZMK Tem", "CD74 Tem", "ITGAE Trm", "FCGR3A NK-T", "TRDV1 γδ-T", "CX3CR1 Temra","ISG15 Tex"))
-#df$majorCluster <- factor(df$majorCluster, c("IL7R Tm", "LAIR2 Treg", "IFNG Th1/Tfh",  "RTKN2 Treg", "CXCL13 Th1/Tfh", "KLF2 Tm", "ISG15 Treg", "GZMA Tem", "TNFRSF9 Treg", "TNFRSF4 Treg"))
 
 #比较cluster之间差异
 df_pvals <- df %>%
@@ -50,7 +48,6 @@ df_pvals <- df %>%
   rstatix::add_x_position(x = "majorCluster", dodge = 0.9) #确定p值的空间位置
 #改动x,y的标签
 library(ggprism)
-p <- NULL
 p <- ggplot(df, aes(x=majorCluster,y=expa))+
   geom_boxplot(aes(fill = group))+
   theme_bw()
@@ -58,15 +55,12 @@ p <- p + add_pvalue(
   df_pvals, y = 0.4, xmin = "xmin", xmax = "xmax", tip.length = 0, 
   fontface = "italic", lineend = "round", bracket.size = 0.5
 )
-p
 ggsave('B_expa_STARTRAC.PDF', width = 9, height = 6)
 #比较grop之间
 ggplot(df, aes(x=group,y=expa))+
   geom_boxplot(aes(fill = group))+
   theme_bw()+stat_compare_means()
-
-ggsave('CD4_expa_STARTRAC_group.PDF', width = 6, height = 4)
-ggsave('B_expa_NR_compare.PDF', width = 12, height = 9)
+ggsave('CD8_expa_STARTRAC_group.PDF', width = 6, height = 4)
 
 #trans作图
 library(rstatix)
@@ -124,8 +118,6 @@ ggplot(df, aes(x=group,y=gini))+
   theme_bw()+stat_compare_means()
 
 ggsave('B_trans_STARTRAC score.PDF', width = 12, height = 9)
-
-
 
 
 
