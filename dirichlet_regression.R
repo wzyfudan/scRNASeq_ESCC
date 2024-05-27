@@ -1,6 +1,4 @@
-# source code downloaded from:
-# https://github.com/cssmillie/ulcerative_colitis
-# there is a 'ulcerative_colitis-master' folder which contains a number of r code scripts
+
 rm(list=ls())
 setwd("E:/Lab data/Sunlab/bioinformatics/rawdata")
 ## load required libraries (analysis.r code includes all the libraries for running all analyses,
