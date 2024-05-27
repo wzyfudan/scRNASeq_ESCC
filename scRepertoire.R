@@ -1,6 +1,4 @@
-#https://www.jianshu.com/p/2805740c1624
-#https://ncborcherding.github.io/vignettes/vignette.html#1_Introduction
-#https://blog.csdn.net/weixin_42382703/article/details/112511753
+
 rm(list=ls())
 setwd("E:/Lab data/Sunlab/bioinformatics/rawdata")
 # Most up-to-date version
@@ -56,8 +54,6 @@ combined <- split(df,df$sample)
 #df2 <- df[!duplicated(df[,1]),]
 #combined <- split(df2,df2$sample)
 
-
-
 #后续分析调用cloneCall参数：
 #"gene"：使用包含TCR/Ig的VDJC基因
 #"nt"：使用CDR3区域的核苷酸序列; "aa"：使用CDR3区域的氨基酸序列
@@ -109,7 +105,6 @@ dev.off()
 # 加载scRNA-seq数据
 seurat <- readRDS("E:/Lab data/Sunlab/bioinformatics/rawdata/T_cell_harmony.Rds")
 seurat <- readRDS("E:/Lab data/Sunlab/bioinformatics/rawdata/CD4T_cell.Rds")
-seurat <- readRDS("E:/Lab data/Sunlab/bioinformatics/rawdata/CXCL13 Tex.Rds")
 # 查看细胞降维聚类信息
 DimPlot(seurat, group.by = "seurat_clusters",label = T) + NoLegend()
 #combine整合,需要barcode去重
@@ -173,19 +168,7 @@ colorblind_vector <- colorRampPalette(c("#FF4B20", "#FFB433",
                                         "#C6FDEC", "#7AC5FF", "#0348A6"))
 DimPlot(seurat, group.by = "cloneType") +
   scale_color_manual(values = colorblind_vector(5), na.value="grey")
-
-#高亮特征分布群，可选择 "CTaa" or "CTnt"，根据TCR CDR3序列
-#{df_spe <- read.csv("mcpas_CD8.csv") #VDJbd,mcpas
-#TRAB <- df_spe[,c("cdr3_aa1","cdr3_aa2")]}
-{df_spe <- read.csv("2023-2-27 MANA score/GLIPH2_result.csv")
-TRAB <- df_spe[,c("TcRa","TcRb")]}
-TRAB <- TRAB[!apply(is.na(TRAB) | TRAB == "", 1, all),] #去除空白行
-TRAB <- unite(TRAB, "CTaa",TcRa,TcRb, sep = "_", remove = FALSE) #合并TRA_TRB or cdr3_aa1,aa2
-TRAB <- TRAB[1:1000,] %>% as.data.frame() #只选择前1000行
-seurat <- highlightClonotypes(seurat, cloneCall= "aa", sequence = TRAB$CTaa) #报错重启
-DimPlot(seurat, group.by = "highlight") + NoLegend() 
-{CD8_spe <- table(seurat@meta.data[,c("new.cluster.ids","highlight")]) %>% as.data.frame()
-aggregate(CD8_spe$Freq, by=list(type=CD8_spe$new.cluster.ids),sum)} #求特异性T在cluster分布数
+       
 # 按一定freq扩增频率，展示克隆分布等高线图
 clonalOverlay(seurat, reduction = "umap", 
               freq.cutpoint = 30, bins = 10) + guides(color = "none")
@@ -196,40 +179,6 @@ clonalNetwork(seurat,
               identity = "ident",
               filter.identity = "2",
               cloneCall = "aa")
-
-##高级桑吉图
-library(circlize)
-library(scales)
-circles <- getCirclize(seurat, group.by = "new.cluster.ids")
-#Just assigning the normal colors to each cluster
-grid.cols <- scales::hue_pal()(length(unique(new.cluster.ids)))
-names(grid.cols) <- levels(new.cluster.ids)
-#Graphing the chord diagram
-circlize::chordDiagram(circles, self.link = 1, grid.col = grid.cols)
-ggsave("CD8 TCR sharing.PDF",width = 8,height = 8)
-
-
-#不同患者和类群之间patient-cluster-type之间的关系，计算量大,反应的是转录组
-seurat@meta.data$group[which(seurat$orig.ident == "P1"|seurat$orig.ident =="P5"|seurat$orig.ident =="P7"|seurat$orig.ident =="P9"|seurat$orig.ident =="P10")] = 'NR'
-seurat@meta.data$group[which(seurat$orig.ident == "P2"|seurat$orig.ident =="P3"|seurat$orig.ident =="P4"|seurat$orig.ident =="P6"|seurat$orig.ident =="P8")] = 'R'
-alluvialClonotypes(seurat, cloneCall = "gene", 
-                   y.axes = c("orig.ident", "new.cluster.ids", "TRG"), 
-                   color = "new.cluster.ids") 
-
-#————————————————————————————————————————————————————————————————————
-#提取扩增亚群并计算不同群之间的差异
-df <- seurat[,seurat@meta.data$cloneType %in% "Hyperexpanded (100 < X <= 1000)" | seurat@meta.data$cloneType %in% "Large (20 < X <= 100)"]
-#df <- seurat[,seurat@meta.data$cloneType %in% NA] #去除错误标记的细胞
-df_R <- df[,df$orig.ident %in% "P3" | df$orig.ident %in% "P4" | df$orig.ident %in% "P6" | df$orig.ident %in% "P8"]
-df_NR <- df[,df@meta.data$orig.ident %in% "P1" | df$orig.ident %in% "P10" | df$orig.ident %in% "P5" | df$orig.ident %in% "P7" | df$orig.ident %in% "P9"]
-saveRDS(df,file="T cell_hyperexpanded & large.rds")
-save(df_R,file = "T cell_R expand.rda")
-save(df_NR,file = "T cell_NR expand.rda")
-df <- get(load("T cell_hyperexpanded & large.rda"))
-eso.freq = as.matrix(as.data.frame.matrix(table(df@meta.data$orig.ident,df@meta.data$CTaa)))
-eso1.freq = as.matrix(as.data.frame.matrix(table(df@meta.data$orig.ident,df@meta.data$seurat_clusters)))
-write.csv(eso.freq,"hyperexpanded.csv")
-write.csv(eso1.freq,"expanded cluster.csv")
 
 #提取相关信息进行STARTRAC--------------------------------------------------
 meta = seurat@meta.data
